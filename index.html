@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Storytime Builder 🧸📖✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* Basic Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.5s ease, color 0.5s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Theme Variables */
+        :root {
+            --bg-color: #f0f9ff; --text-color: #0c4a6e; --primary-color: #38bdf8; --secondary-color: #fbbf24; --accent-color: #ec4899; --container-bg: #ffffff; --border-color: #e0f2fe; --button-bg: var(--primary-color); --button-text: white; --button-hover-bg: #0ea5e9; --shadow-color: rgba(56, 189, 248, 0.3); --twin-line-offset: 4px; --twin-line-color: var(--text-color);
+            --success-color: #22c55e; --error-color: #ef4444; 
+            --input-bg-color: var(--bg-color);
+            --input-border-color: var(--primary-color);
+            --story-font: 'Comic Neue', cursive; /* Playful font for story text */
+            --emoji-bg-hover: #e0f2fe;
+        }
+        .theme-dark {
+            --bg-color: #1f2937; --text-color: #f3f4f6; --primary-color: #60a5fa; --secondary-color: #facc15; --accent-color: #f472b6; --container-bg: #374151; --border-color: #4b5563; --button-hover-bg: #3b82f6; --shadow-color: rgba(96, 165, 250, 0.3); --twin-line-color: var(--text-color);
+            --success-color: #4ade80; --error-color: #f87171; --input-bg-color: #4b5563; --input-border-color: var(--primary-color); --emoji-bg-hover: #374151;
+        }
+        .theme-sunset {
+            --bg-color: #fff7ed; --text-color: #7c2d12; --primary-color: #f97316; --secondary-color: #ec4899; --accent-color: #8b5cf6; --container-bg: #ffedd5; --border-color: #fed7aa; --button-hover-bg: #ea580c; --shadow-color: rgba(249, 115, 22, 0.3); --twin-line-color: var(--text-color);
+            --success-color: #84cc16; --error-color: #f97316; --input-bg-color: #fed7aa; --input-border-color: var(--primary-color); --emoji-bg-hover: #ffedd5;
+        }
+        .theme-forest {
+            --bg-color: #f0fdf4; --text-color: #14532d; --primary-color: #22c55e; --secondary-color: #a3e635; --accent-color: #f59e0b; --container-bg: #dcfce7; --border-color: #bbf7d0; --button-hover-bg: #16a34a; --shadow-color: rgba(34, 197, 94, 0.3); --twin-line-color: var(--text-color);
+            --success-color: #16a34a; --error-color: #dc2626; --input-bg-color: #bbf7d0; --input-border-color: var(--primary-color); --emoji-bg-hover: #dcfce7;
+        }
+        .theme-ocean {
+            --bg-color: #eff6ff; --text-color: #1e3a8a; --primary-color: #3b82f6; --secondary-color: #10b981; --accent-color: #6366f1; --container-bg: #dbeafe; --border-color: #bfdbfe; --button-hover-bg: #2563eb; --shadow-color: rgba(59, 130, 246, 0.3); --twin-line-color: var(--text-color);
+            --success-color: #10b981; --error-color: #f43f5e; --input-bg-color: #bfdbfe; --input-border-color: var(--primary-color); --emoji-bg-hover: #dbeafe;
+        }
+        .theme-candy {
+            --bg-color: #fdf2f8; --text-color: #831843; --primary-color: #ec4899; --secondary-color: #a855f7; --accent-color: #22d3ee; --container-bg: #fce7f3; --border-color: #fbcfe8; --button-hover-bg: #db2777; --shadow-color: rgba(236, 72, 153, 0.3); --twin-line-color: var(--text-color);
+            --success-color: #a855f7; --error-color: #e11d48; --input-bg-color: #fbcfe8; --input-border-color: var(--primary-color); --emoji-bg-hover: #fce7f3;
+        }
+        .theme-arcade {
+            --bg-color: #1a1a2e; --text-color: #00ff00; --primary-color: #ff00ff; --secondary-color: #ffff00; --accent-color: #00ffff; --container-bg: #2a2a3e; --border-color: #4a4a5e; --button-text: #1a1a2e; --button-hover-bg: #e000e0; --shadow-color: rgba(255, 0, 255, 0.4); --twin-line-color: var(--text-color);
+            --success-color: #00ff00; --error-color: #ff3333; --input-bg-color: #4a4a5e; --input-border-color: var(--primary-color); --emoji-bg-hover: #2a2a3e;
+        }
+
+        body { /* Body styles */
+            background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 1rem; padding-top: 5rem; box-sizing: border-box;
+        }
+        .theme-selector-container { /* Theme selector styles */
+            position: fixed; top: 1rem; right: 1rem; background-color: var(--container-bg); padding: 0.5rem; border-radius: 10px; box-shadow: 0 6px 12px var(--shadow-color); border: 2px solid var(--border-color); z-index: 1000; width: auto; max-width: 200px;
+        }
+        .theme-selector-container::before, .theme-selector-container::after { content: ''; position: absolute; border-radius: 10px; border: 1px solid var(--twin-line-color); transition: all 0.3s ease-in-out; z-index: -1; }
+        .theme-selector-container::before { top: calc(-0.5 * var(--twin-line-offset)); left: calc(-0.5 * var(--twin-line-offset)); right: calc(-0.5 * var(--twin-line-offset)); bottom: calc(-0.5 * var(--twin-line-offset)); opacity: 0.5; }
+        .theme-selector-container::after { top: calc(-1 * var(--twin-line-offset)); left: calc(-1 * var(--twin-line-offset)); right: calc(-1 * var(--twin-line-offset)); bottom: calc(-1 * var(--twin-line-offset)); opacity: 0.25; }
+        .theme-selector { /* Theme selector dropdown */
+             padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--input-border-color); background-color: var(--input-bg-color); color: var(--text-color); font-weight: 500; cursor: pointer; transition: background-color 0.3s ease, border-color 0.3s ease; width: 100%; font-size: 0.9rem; 
+        }
+        .theme-selector:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-color); }
+
+        .game-container { /* Game container styles */
+            background-color: var(--container-bg); padding: 1.5rem; border-radius: 16px; box-shadow: 0 10px 25px var(--shadow-color); width: 90%; max-width: 800px; text-align: center; border: 2px solid var(--border-color); margin-top: 1rem; position: relative; animation: fadeInScaleUp 0.8s ease-out forwards;
+        }
+        .game-container::before, .game-container::after { content: ''; position: absolute; border-radius: 16px; border: 2px solid var(--twin-line-color); transition: all 0.3s ease-in-out; }
+        .game-container::before { top: calc(-1 * var(--twin-line-offset)); left: calc(-1 * var(--twin-line-offset)); right: calc(-1 * var(--twin-line-offset)); bottom: calc(-1 * var(--twin-line-offset)); z-index: -1; opacity: 0.6; }
+        .game-container::after { top: calc(-2 * var(--twin-line-offset)); left: calc(-2 * var(--twin-line-offset)); right: calc(-2 * var(--twin-line-offset)); bottom: calc(-2 * var(--twin-line-offset)); z-index: -2; opacity: 0.3; }
+        @keyframes fadeInScaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem; }
+        .game-title { font-size: 2.2rem; font-weight: 700; color: var(--primary-color); padding-top: 1rem; animation: slideInDown 0.6s ease-out forwards; flex-grow: 1; text-align: left; font-family: var(--story-font); }
+        @keyframes slideInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #muteBtn { background-color: var(--secondary-color); color: var(--button-text); border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px var(--shadow-color); }
+        #muteBtn:hover { transform: scale(1.1); }
+
+        /* Story Builder Specific Styles */
+        .story-builder-layout { display: flex; flex-direction: column; gap: 1.5rem; }
+        #emojiPalette {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; padding: 1rem; background-color: var(--input-bg-color); border-radius: 12px; border: 2px dashed var(--secondary-color);
+        }
+        .emoji-item {
+            font-size: 2.5rem; /* Larger emojis */
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: grab;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            user-select: none; /* Prevent text selection during drag */
+        }
+        .emoji-item:hover { transform: scale(1.15); background-color: var(--emoji-bg-hover); }
+        .emoji-item:active { cursor: grabbing; transform: scale(1.1); }
+
+        #storySequenceArea {
+            min-height: 80px;
+            padding: 1rem;
+            background-color: var(--bg-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #storySequenceArea.drag-over { border-style: dashed; border-color: var(--accent-color); background-color: var(--emoji-bg-hover); }
+        .story-sequence-emoji {
+            font-size: 2.2rem;
+            padding: 0.4rem;
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px var(--shadow-color);
+            cursor: move; /* For reordering */
+        }
+        .story-sequence-placeholder {
+            color: var(--text-color);
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        #storyOutputArea {
+            margin-top: 1rem; padding: 1.5rem; border-radius: 12px; background-color: var(--input-bg-color); border: 2px solid var(--success-color); min-height: 100px; font-size: 1.3rem; color: var(--text-color); text-align: left; line-height: 1.7; font-family: var(--story-font);
+        }
+        #storyOutputArea p { margin: 0 0 0.5em 0; } /* Add some space between paragraphs */
+        #storyOutputArea p:last-child { margin-bottom: 0; }
+        #storyOutputArea .emoji-inline { font-size: 1.5rem; vertical-align: middle; margin: 0 0.1em; }
+
+
+        .game-buttons button { /* Main action buttons */
+            background-color: var(--button-bg); color: var(--button-text); padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; margin: 0.5rem; box-shadow: 0 4px 6px var(--shadow-color); position: relative; border: 2px solid transparent;
+        }
+        .game-buttons button::before { content: ''; position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px; border: 2px solid var(--accent-color); border-radius: 10px; opacity: 0; transition: opacity 0.3s ease; z-index: -1; }
+        .game-buttons button:hover::before { opacity: 1; }
+        .game-buttons button:hover { background-color: var(--button-hover-bg); transform: translateY(-3px) scale(1.05); box-shadow: 0 6px 12px var(--shadow-color); }
+        .game-buttons button:active { transform: translateY(-1px) scale(1.02); }
+        .game-buttons button:disabled { background-color: #9ca3af; cursor: not-allowed; opacity: 0.7;}
+        
+        /* Saved Stories Modal */
+        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: var(--container-bg); margin: 10% auto; padding: 25px; border: 2px solid var(--primary-color); border-radius: 12px; width: 80%; max-width: 600px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
+        .close-button { color: var(--accent-color); float: right; font-size: 28px; font-weight: bold; }
+        .close-button:hover, .close-button:focus { color: var(--text-color); text-decoration: none; cursor: pointer; }
+        #savedStoriesList { list-style: none; padding: 0; }
+        #savedStoriesList li { background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 10px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        #savedStoriesList li .story-text-container { flex-grow: 1; margin-right: 10px; text-align: left; }
+        #savedStoriesList li .story-text-container p { font-family: var(--story-font); font-size: 1.1rem; margin: 0 0 0.3em 0; }
+        #savedStoriesList li .story-emojis { font-size: 1.5rem; }
+        #savedStoriesList button.delete-story-btn { background-color: var(--error-color); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem;}
+
+
+        .footer { /* Footer styles */
+            margin-top: auto; padding: 1.5rem 1rem; text-align: center; font-size: 0.9rem; color: var(--text-color); width: 100%; background-color: var(--container-bg); border-top: 2px solid var(--border-color); box-shadow: 0 -4px 10px var(--shadow-color); opacity: 0.8; transition: opacity 0.3s ease;
+        }
+        .footer:hover{ opacity: 1; }
+
+        @media (max-width: 768px) { /* Responsive adjustments */
+            .game-title { font-size: 1.8rem; text-align: center; margin-bottom: 0.5rem;} 
+            .game-header { flex-direction: column-reverse; align-items: center; } 
+            #muteBtn { margin-bottom: 0.75rem; }
+            .game-container { width: 95%; padding: 1.5rem; margin-top: 1rem; max-width: 95%;}
+            .story-builder-layout { gap: 1rem; }
+            #emojiPalette { padding: 0.75rem; gap: 0.5rem;}
+            .emoji-item { font-size: 2rem; }
+            #storySequenceArea { min-height: 70px; }
+            .story-sequence-emoji { font-size: 1.8rem; }
+            #storyOutputArea { font-size: 1.1rem; padding: 1rem; }
+            .modal-content { width: 90%; margin-top: 15%; }
+        }
+        @media (max-width: 480px) {
+            body { padding-top: 4.5rem; }
+            .game-title { font-size: 1.6rem; }
+            .game-buttons button { padding: 0.6rem 1.2rem; font-size: 0.9rem; width: calc(100% - 1rem); margin: 0.3rem auto;}
+            .game-container { padding: 1rem; }
+            #emojiPalette { justify-content: space-around;}
+            .emoji-item { font-size: 1.8rem; padding: 0.3rem;}
+            #storyOutputArea { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="theme-selector-container">
+        <select id="themeSwitcher" class="theme-selector" aria-label="Select Theme">
+            <option value="default">Default Bright</option>
+            <option value="theme-dark">Dark Mode 🌙</option>
+            <option value="theme-sunset">Sunset Glow 🌅</option>
+            <option value="theme-forest">Forest Whisper 🌲</option>
+            <option value="theme-ocean">Ocean Deep 🌊</option>
+            <option value="theme-candy">Candy Pop 🍭</option>
+            <option value="theme-arcade">Retro Arcade 👾</option>
+        </select>
+    </div>
+
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">AI Storytime Builder 🧸📖✨</h1>
+            <button id="muteBtn" title="Toggle Sound">🔈</button>
+        </div>
+        
+        <div class="story-builder-layout">
+            <div>
+                <h2 class="text-xl font-semibold mb-2" style="color: var(--accent-color);">Pick Your Story Emojis! 👇</h2>
+                <div id="emojiPalette">
+                    </div>
+            </div>
+
+            <div>
+                <h2 class="text-xl font-semibold mb-2" style="color: var(--accent-color);">Your Story Sequence ✨</h2>
+                <div id="storySequenceArea">
+                    <span class="story-sequence-placeholder">Drag emojis here to build your story!</span>
+                </div>
+            </div>
+
+            <div class="game-buttons">
+                <button id="tellStoryBtn" class="game-button">Tell My Story! 🪄</button>
+                <button id="clearSequenceBtn" class="game-button">Clear Sequence 🧹</button>
+            </div>
+
+            <div>
+                <h2 class="text-xl font-semibold mb-2" style="color: var(--accent-color);">📖 Once upon a time...</h2>
+                <div id="storyOutputArea">
+                    <p>Your amazing story will appear here!</p> </div>
+            </div>
+            
+            <div class="game-buttons">
+                <button id="saveStoryBtn" class="game-button" disabled>Save This Story 💾</button>
+                <button id="viewSavedBtn" class="game-button">View Saved Stories 📚</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="savedStoriesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeModalBtn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4" style="color: var(--primary-color); font-family: var(--story-font);">Your Saved Adventures! 📜</h2>
+            <ul id="savedStoriesList">
+                </ul>
+            <p id="noSavedStoriesMsg" style="display: none; color: var(--text-color); font-style: italic;">You haven't saved any stories yet!</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2025 ToolForge. All rights reserved. Built with ❤️ by Anas.
+    </footer>
+
+    <script>
+        // --- Sound & Theme Logic (similar to previous games) ---
+        const themeSwitcher = document.getElementById('themeSwitcher');
+        const bodyEl = document.body; 
+        const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+        bodyEl.className = savedTheme !== 'default' ? savedTheme : '';
+        themeSwitcher.value = savedTheme;
+        
+        const muteBtn = document.getElementById('muteBtn');
+        let isMuted = localStorage.getItem('isMuted') === 'true';
+        let synth; 
+
+        function playSound(type, note, duration, time) {
+            if (isMuted || !synth) return;
+            try {
+                if (type === 'click') synth.triggerAttackRelease(note || "C4", duration || "16n", time || Tone.now());
+                else if (type === 'drop') synth.triggerAttackRelease(note || "E4", duration || "24n", time || Tone.now());
+                else if (type === 'story') synth.triggerAttackRelease(note || "G4", duration || "8n", time || Tone.now());
+                else if (type === 'clear') synth.triggerAttackRelease(note || "A3", duration || "16n", time || Tone.now());
+                else if (type === 'save') synth.triggerAttackRelease(note || "C5", duration || "16n", time || Tone.now());
+
+            } catch (e) { console.warn("Tone.js error playing sound:", e); }
+        }
+        
+        themeSwitcher.addEventListener('change', function() {
+            bodyEl.className = '';
+            if (this.value !== 'default') { bodyEl.classList.add(this.value); }
+            localStorage.setItem('selectedTheme', this.value);
+            playSound('click', 'E4', '16n');
+        });
+
+        function updateMuteButtonVisual() {
+            muteBtn.textContent = isMuted ? '🔇' : '🔈';
+            muteBtn.title = isMuted ? 'Unmute Sound' : 'Mute Sound';
+        }
+        updateMuteButtonVisual(); 
+
+        muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            if (typeof Tone !== 'undefined' && Tone.Destination) { 
+                Tone.Destination.mute = isMuted;
+            }
+            localStorage.setItem('isMuted', isMuted);
+            updateMuteButtonVisual();
+            if (!isMuted) playSound('click', 'G4', '16n');
+        });
+        
+        // --- Game Elements & Logic ---
+        const emojiPalette = document.getElementById('emojiPalette');
+        const storySequenceArea = document.getElementById('storySequenceArea');
+        const storyOutputDiv = document.getElementById('storyOutputArea'); // Get the div
+        const tellStoryBtn = document.getElementById('tellStoryBtn');
+        const clearSequenceBtn = document.getElementById('clearSequenceBtn');
+        const saveStoryBtn = document.getElementById('saveStoryBtn');
+        const viewSavedBtn = document.getElementById('viewSavedBtn');
+        const savedStoriesModal = document.getElementById('savedStoriesModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const savedStoriesList = document.getElementById('savedStoriesList');
+        const noSavedStoriesMsg = document.getElementById('noSavedStoriesMsg');
+
+        let currentStorySequence = []; // Array of emoji strings
+        let currentGeneratedStoryText = ""; // Will store the full HTML string of the story
+
+        const availableEmojis = [
+            '👑', '🧙', '🧑‍🚀', '🦸', '🧚', '🤖', '🦄', '🐲', '👽', '👻', 
+            '🌲', '🏰', '🏞️', '🏝️', '⛰️', '🏠', '🚀', '🚗', '⛵', '🌠', 
+            '🌟', '💎', '🔑', '🗺️', '📖', '🍎', '🎂', '🎁', '🎈', '❤️', 
+            '🏃', '💃', '🎤', '🎨', '🔎', '😴', '😂', '🤔', '😱', '🥳'  
+        ];
+
+        const emojiMeanings = {
+            '👑': { type: 'character', name: 'a majestic King', description: 'with a golden crown', action_verb: 'decreed', article: 'The'},
+            '🧙': { type: 'character', name: 'a wise Wizard', description: 'with a long beard', action_verb: 'chanted', article: 'The'},
+            '🧑‍🚀': { type: 'character', name: 'a brave Astronaut', description: 'in a shiny suit', action_verb: 'explored', article: 'The'},
+            '🦸': { type: 'character', name: 'a mighty Superhero', description: 'with a flowing cape', action_verb: 'saved the day', article: 'The'},
+            '🧚': { type: 'character', name: 'a playful Fairy', description: 'with sparkling wings', action_verb: 'giggled', article: 'The'},
+            '🤖': { type: 'character', name: 'a curious Robot', description: 'made of metal and lights', action_verb: 'calculated', article: 'The'},
+            '🦄': { type: 'creature', name: 'a magical Unicorn', description: 'with a rainbow horn', action_verb: 'galloped', article: 'The'},
+            '🐲': { type: 'creature', name: 'a fearsome Dragon', description: 'breathing fire', action_verb: 'roared', article: 'The'},
+            '👽': { type: 'creature', name: 'a friendly Alien', description: 'from a distant planet', action_verb: 'beeped', article: 'The'},
+            '👻': { type: 'creature', name: 'a spooky Ghost', description: 'floating silently', action_verb: 'booed', article: 'The'},
+            '🌲': { type: 'place', name: 'a deep, dark forest', place_description: 'where ancient trees whispered secrets', article: 'In a'},
+            '🏰': { type: 'place', name: 'a grand castle', place_description: 'with tall towers and a wide moat', article: 'In a'},
+            '🏞️': { type: 'place', name: 'a beautiful park', place_description: 'filled with colorful flowers and happy children', article: 'In a'},
+            '🏝️': { type: 'place', name: 'a sunny island', place_description: 'surrounded by crystal clear water', article: 'On a'},
+            '⛰️': { type: 'place', name: 'a tall mountain', place_description: 'reaching for the clouds', article: 'On a'},
+            '🏠': { type: 'place', name: 'a cozy house', place_description: 'with a warm, glowing fireplace', article: 'In a'},
+            '🚀': { type: 'vehicle', name: 'a speedy rocket', description: 'blasting off to the stars', action_verb: 'zoomed', article: 'A'},
+            '🚗': { type: 'vehicle', name: 'a shiny car', description: 'cruising down the road', action_verb: 'drove', article: 'A'},
+            '⛵': { type: 'vehicle', name: 'a sturdy boat', description: 'sailing across the sea', action_verb: 'sailed', article: 'A'},
+            '🌠': { type: 'event', name: 'a shooting star', description: 'streaking across the night sky', article: 'Suddenly, they saw a'},
+            '🌟': { type: 'object', name: 'a twinkling star', description: 'shining brightly', article: 'a'},
+            '💎': { type: 'object', name: 'a sparkling diamond', description: 'glittering with light', article: 'a'},
+            '🔑': { type: 'object', name: 'a mysterious key', description: 'that promised adventure', article: 'a'},
+            '🗺️': { type: 'object', name: 'an ancient map', description: 'showing a hidden treasure', article: 'an'},
+            '📖': { type: 'object', name: 'a magical book', description: 'filled with wondrous tales', article: 'a'},
+            '🍎': { type: 'food', name: 'a juicy apple', description: 'red and delicious', article: 'a'},
+            '🎂': { type: 'food', name: 'a delicious cake', description: 'with candles on top', article: 'a'},
+            '🎁': { type: 'object', name: 'a surprise gift', description: 'wrapped in a big bow', article: 'a'},
+            '🎈': { type: 'object', name: 'a colorful balloon', description: 'floating high', article: 'a'},
+            '❤️': { type: 'feeling', name: 'a feeling of great love', description: 'warm and fuzzy', article: ''},
+            '🏃': { type: 'action', verb: 'ran as fast as they could', present_verb: 'runs as fast as they can', description: 'with speedy feet'},
+            '💃': { type: 'action', verb: 'danced with joy', present_verb: 'dances with joy', description: 'twirling around'},
+            '🎤': { type: 'action', verb: 'sang a beautiful song', present_verb: 'sings a beautiful song', description: 'with a clear voice'},
+            '🎨': { type: 'action', verb: 'painted a masterpiece', present_verb: 'paints a masterpiece', description: 'with bright colors'},
+            '🔎': { type: 'action', verb: 'searched for a hidden clue', present_verb: 'searches for a hidden clue', description: 'looking carefully'},
+            '😴': { type: 'action', verb: 'fell into a deep sleep', present_verb: 'falls into a deep sleep', description: 'dreaming sweet dreams'},
+            '😂': { type: 'feeling', name: 'uncontrollable laughter', description: 'shaking with giggles', article: ''},
+            '🤔': { type: 'action', verb: 'thought very deeply', present_verb: 'thinks very deeply', description: 'with a puzzled look'},
+            '😱': { type: 'feeling', name: 'a moment of pure shock', description: 'eyes wide with surprise', article: ''},
+            '🥳': { type: 'action', verb: 'celebrated with a grand party', present_verb: 'celebrates with a grand party', description: 'full of fun and games'}
+        };
+        
+        // Enhanced Story Templates
+        const storyTemplates = [
+            // Template for 2 emojis
+            (e1, e2) => {
+                const E1 = emojiMeanings[e1] || { name: e1, description: '', article: 'A' };
+                const E2 = emojiMeanings[e2] || { name: e2, description: '', article: 'a' };
+                return `<p>${E1.article} ${E1.name} ${E1.description ? E1.description : ''} once found ${E2.article} ${E2.name} ${E2.description ? E2.description : ''}.</p><p>They wondered what adventures it might bring!</p>`;
+            },
+            // Template for 3 emojis
+            (e1, e2, e3) => {
+                const E1 = emojiMeanings[e1] || { name: e1, description: '', article: 'A', type: 'character' };
+                const E2 = emojiMeanings[e2] || { name: e2, description: '', article: 'a', type: 'place', place_description: 'a mysterious land' };
+                const E3 = emojiMeanings[e3] || { name: e3, description: '', article: 'a', type: 'object' };
+                let story = `<p>In ${E2.type === 'place' ? E2.name : 'a land filled with ' + E2.name} ${E2.place_description ? E2.place_description : ''}, lived ${E1.article} ${E1.name} ${E1.description ? E1.description : ''}.</p>`;
+                story += `<p>One sunny morning, while exploring, they stumbled upon ${E3.article} ${E3.name} ${E3.description ? E3.description : ''}!</p>`;
+                story += `<p>"Wow!" exclaimed ${E1.name}, "This could be the start of something amazing!"</p>`;
+                return story;
+            },
+            // Template for 4 emojis
+            (e1, e2, e3, e4) => {
+                const E1 = emojiMeanings[e1] || { name: e1, description: '', article: 'A', type: 'character' };
+                const E2 = emojiMeanings[e2] || { name: e2, description: '', article: 'a', type: 'action', verb: 'went on a journey' };
+                const E3 = emojiMeanings[e3] || { name: e3, description: '', article: 'a', type: 'creature' };
+                const E4 = emojiMeanings[e4] || { name: e4, description: '', article: 'a', type: 'place', place_description: 'a wondrous realm' };
+                let story = `<p>Let me tell you about ${E1.article} ${E1.name} ${E1.description ? E1.description : ''}.</p>`;
+                story += `<p>One day, ${E1.name} ${E2.verb ? E2.verb : 'decided to ' + E2.name}. Their destination was ${E4.type === 'place' ? E4.name : 'the land of ' + E4.name}, ${E4.place_description ? E4.place_description : ''}.</p>`;
+                story += `<p>Along the path, they met ${E3.article} ${E3.name} ${E3.description ? E3.description : ''}.</p>`;
+                story += `<p>Together, they shared many laughs and looked forward to more adventures.</p>`;
+                return story;
+            },
+            // Template for 5 emojis
+            (e1, e2, e3, e4, e5) => {
+                const E1 = emojiMeanings[e1] || { name: e1, description: '', article: 'A', type: 'character' };
+                const E2 = emojiMeanings[e2] || { name: e2, description: '', article: 'a', type: 'object' };
+                const E3 = emojiMeanings[e3] || { name: e3, description: '', article: 'a', type: 'place', place_description: 'a secret spot' };
+                const E4 = emojiMeanings[e4] || { name: e4, description: '', article: 'a', type: 'action', verb: 'had an idea' };
+                const E5 = emojiMeanings[e5] || { name: e5, description: '', article: 'a', type: 'feeling', name: 'excitement' };
+                let story = `<p>${E1.article} ${E1.name} ${E1.description ? E1.description : ''} had a very special ${E2.name} ${E2.description ? E2.description : ''}.</p>`;
+                story += `<p>They kept it hidden in ${E3.type === 'place' ? E3.name : 'a place called ' + E3.name}, ${E3.place_description ? E3.place_description : ''}.</p>`;
+                story += `<p>One afternoon, ${E1.name} ${E4.verb ? E4.verb : E4.name}. They decided to share their secret with the world!</p>`;
+                story += `<p>This brought ${E5.type === 'feeling' ? E5.name : 'a feeling of ' + E5.name} ${E5.description ? E5.description : ''} to everyone who heard the tale.</p>`;
+                story += `<p>And so, the legend of ${E1.name} and the ${E2.name} lived on.</p>`;
+                return story;
+            }
+        ];
+
+
+        function populateEmojiPalette() {
+            emojiPalette.innerHTML = ''; 
+            availableEmojis.forEach(emoji => {
+                const span = document.createElement('span');
+                span.classList.add('emoji-item');
+                span.textContent = emoji;
+                span.draggable = true;
+                span.dataset.emoji = emoji; 
+                span.addEventListener('dragstart', handleDragStart);
+                emojiPalette.appendChild(span);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.emoji);
+            e.target.style.opacity = '0.5'; 
+            playSound('click', 'A3', '32n');
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+        }
+        
+        storySequenceArea.addEventListener('dragover', (e) => {
+            e.preventDefault(); 
+            storySequenceArea.classList.add('drag-over');
+        });
+
+        storySequenceArea.addEventListener('dragleave', () => {
+            storySequenceArea.classList.remove('drag-over');
+        });
+
+        storySequenceArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            storySequenceArea.classList.remove('drag-over');
+            const emoji = e.dataTransfer.getData('text/plain');
+            if (emoji && currentStorySequence.length < 10) { 
+                currentStorySequence.push(emoji);
+                renderStorySequence();
+                playSound('drop');
+                saveStoryBtn.disabled = true; 
+                storyOutputDiv.innerHTML = "<p>Story elements changed! Click 'Tell My Story!'</p>";
+            }
+        });
+
+        function renderStorySequence() {
+            storySequenceArea.innerHTML = ''; 
+            if (currentStorySequence.length === 0) {
+                const placeholder = document.createElement('span');
+                placeholder.classList.add('story-sequence-placeholder');
+                placeholder.textContent = "Drag emojis here to build your story!";
+                storySequenceArea.appendChild(placeholder);
+            } else {
+                currentStorySequence.forEach((emoji, index) => {
+                    const span = document.createElement('span');
+                    span.classList.add('story-sequence-emoji');
+                    span.textContent = emoji;
+                    span.draggable = true; 
+                    span.dataset.index = index;
+                    span.addEventListener('dragstart', handleSequenceDragStart);
+                    span.addEventListener('dragend', handleDragEnd); 
+                    storySequenceArea.appendChild(span);
+                });
+            }
+        }
+        
+        let draggedItemIndex = null;
+        function handleSequenceDragStart(e) {
+            draggedItemIndex = parseInt(e.target.dataset.index);
+            e.dataTransfer.setData('text/plain', e.target.textContent); 
+            e.target.style.opacity = '0.5';
+        }
+
+        storySequenceArea.addEventListener('drop', (e) => { 
+            if (draggedItemIndex !== null) { 
+                e.preventDefault();
+                const targetElement = e.target.closest('.story-sequence-emoji');
+                let targetIndex = currentStorySequence.length -1; 
+                if(targetElement) {
+                    targetIndex = parseInt(targetElement.dataset.index);
+                }
+
+                const item = currentStorySequence.splice(draggedItemIndex, 1)[0];
+                currentStorySequence.splice(targetIndex, 0, item);
+                
+                draggedItemIndex = null;
+                renderStorySequence();
+                playSound('drop', 'C4', '24n');
+            }
+        });
+
+
+        tellStoryBtn.addEventListener('click', () => {
+            if (currentStorySequence.length < 2) {
+                storyOutputDiv.innerHTML = "<p>Add at least 2 emojis to make a story! 😃</p>";
+                playSound('click', 'C3', '16n');
+                return;
+            }
+            
+            const numEmojis = currentStorySequence.length;
+            let selectedTemplate;
+
+            // Try to find a template that exactly matches the number of emojis
+            const exactMatchTemplates = storyTemplates.filter(t => t.length === numEmojis);
+            if (exactMatchTemplates.length > 0) {
+                selectedTemplate = exactMatchTemplates[Math.floor(Math.random() * exactMatchTemplates.length)];
+            } else {
+                // If no exact match, find templates that can take *up to* this many, or fewer.
+                // Prioritize templates that use more of the selected emojis.
+                let bestFitTemplates = storyTemplates.filter(t => t.length <= numEmojis);
+                if (bestFitTemplates.length === 0) { // Should not happen if we have 2-emoji templates
+                    bestFitTemplates = storyTemplates; // Use any template as a last resort
+                }
+                // Sort by length descending to prefer templates that use more emojis
+                bestFitTemplates.sort((a, b) => b.length - a.length);
+                selectedTemplate = bestFitTemplates[0]; // Pick the one that uses most (or all)
+            }
+            
+            const args = currentStorySequence.slice(0, selectedTemplate.length); // Only pass as many emojis as the template expects
+
+            currentGeneratedStoryText = selectedTemplate(...args); // Pass emojis directly
+            storyOutputDiv.innerHTML = currentGeneratedStoryText; // Set as HTML
+
+            playSound('story', 'G4', '8n');
+            saveStoryBtn.disabled = false;
+        });
+
+        clearSequenceBtn.addEventListener('click', () => {
+            currentStorySequence = [];
+            renderStorySequence();
+            storyOutputDiv.innerHTML = "<p>Your amazing story will appear here!</p>";
+            saveStoryBtn.disabled = true;
+            playSound('clear');
+        });
+
+        saveStoryBtn.addEventListener('click', () => {
+            if (!currentGeneratedStoryText || currentStorySequence.length === 0) return;
+            const savedStories = JSON.parse(localStorage.getItem('aiKidStories')) || [];
+            const newStory = {
+                id: Date.now(), 
+                sequence: [...currentStorySequence],
+                htmlText: currentGeneratedStoryText // Save the HTML string
+            };
+            savedStories.push(newStory);
+            localStorage.setItem('aiKidStories', JSON.stringify(savedStories));
+            alert("Story Saved! 💾");
+            playSound('save');
+            saveStoryBtn.disabled = true; 
+        });
+
+        viewSavedBtn.addEventListener('click', () => {
+            renderSavedStories();
+            savedStoriesModal.style.display = "block";
+            playSound('click', 'F4', '16n');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            savedStoriesModal.style.display = "none";
+            playSound('click', 'D4', '16n');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == savedStoriesModal) {
+                savedStoriesModal.style.display = "none";
+            }
+        });
+
+        function renderSavedStories() {
+            const stories = JSON.parse(localStorage.getItem('aiKidStories')) || [];
+            savedStoriesList.innerHTML = '';
+            if (stories.length === 0) {
+                noSavedStoriesMsg.style.display = "block";
+            } else {
+                noSavedStoriesMsg.style.display = "none";
+                stories.forEach(story => {
+                    const li = document.createElement('li');
+                    
+                    const storyTextContainer = document.createElement('div'); // Use a div for HTML content
+                    storyTextContainer.classList.add('story-text-container');
+                    storyTextContainer.innerHTML = story.htmlText; // Set innerHTML
+                    
+                    const storyEmojisSpan = document.createElement('span');
+                    storyEmojisSpan.classList.add('story-emojis');
+                    storyEmojisSpan.textContent = story.sequence.join(' ');
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.classList.add('delete-story-btn');
+                    deleteBtn.textContent = '🗑️';
+                    deleteBtn.onclick = () => deleteStory(story.id);
+                    
+                    li.appendChild(storyEmojisSpan); 
+                    li.appendChild(storyTextContainer);
+                    li.appendChild(deleteBtn);
+                    savedStoriesList.appendChild(li);
+                });
+            }
+        }
+        
+        function deleteStory(storyId) {
+            let stories = JSON.parse(localStorage.getItem('aiKidStories')) || [];
+            stories = stories.filter(story => story.id !== storyId);
+            localStorage.setItem('aiKidStories', JSON.stringify(stories));
+            renderSavedStories(); 
+            playSound('clear', 'C3', '8n');
+        }
+
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof Tone !== 'undefined') {
+                 synth = new Tone.Synth({
+                    oscillator: { type: "triangle" }, 
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.2 }
+                }).toDestination();
+                if (Tone.Destination) Tone.Destination.mute = isMuted;
+            } else {
+                console.warn("Tone.js not loaded. Sound effects will be unavailable.");
+            }
+            
+            populateEmojiPalette();
+            renderStorySequence(); 
+            document.querySelectorAll('#emojiPalette .emoji-item').forEach(item => {
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        });
+    </script>
+</body>
+</html>
